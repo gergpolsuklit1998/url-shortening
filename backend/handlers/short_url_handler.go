@@ -11,6 +11,7 @@ import (
 	"github.com/gergpolsuklit1998/url-shortening/repository"
 
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson"
 	_ "go.mongodb.org/mongo-driver/bson"
 	_ "go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -67,6 +68,7 @@ func (h *ShortUrlHandler) CreateShortUrl(c *gin.Context) {
 		return
 	}
 
+	createdShorUrl.ShortCode = "http://localhost:8000/api/v1/shortens/" + shortCode
 	// Return created short url
 	c.JSON(http.StatusCreated, gin.H{
 		"statusCode": http.StatusCreated,
@@ -110,4 +112,83 @@ func (h *ShortUrlHandler) RedirectShortUrl(c *gin.Context) {
 
 	// Redirect to original URL
 	c.Redirect(http.StatusMovedPermanently, shorUrl.Url)
+}
+
+func (h *ShortUrlHandler) UpdateShortUrl(c *gin.Context) {
+	// Parse the ShortCode parameter from the URL
+	shortCodeParam := c.Param("shortCode")
+
+	// Bind the update request
+	var req models.UpdateShortUrlRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"statusCode": http.StatusBadRequest,
+			"error":      "Invalid request body",
+		})
+		return
+	}
+
+	// Build update document with only provided fields
+	update := bson.M{}
+	if req.Url != nil {
+		update["url"] = *req.Url
+	}
+
+	// Check if there is anything to update
+	if len(update) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"statusCode": http.StatusBadRequest,
+			"error":      "No fields to update",
+		})
+		return
+	}
+
+	// Perform the update
+	updatedShortUrl, err := h.repo.Update(c.Request.Context(), shortCodeParam, update)
+	if err != nil {
+		if err == repository.ErrShortUrlNotFound {
+			c.JSON(http.StatusNotFound, gin.H{
+				"statusCode": http.StatusNotFound,
+				"error":      repository.ErrShortUrlNotFound.Error(),
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"statusCode": http.StatusInternalServerError,
+			"error":      "Internal Server Error",
+		})
+		return
+	}
+
+	updatedShortUrl.ShortCode = "http://localhost:8000/api/v1/shortens/" + updatedShortUrl.ShortCode
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Short url updated successfully",
+		"data":    updatedShortUrl,
+	})
+}
+
+func (h *ShortUrlHandler) DeleteShortUrl(c *gin.Context) {
+	shortCodeParam := c.Param("shortCode")
+
+	err := h.repo.Delete(c.Request.Context(), shortCodeParam)
+	if err != nil {
+		if err == repository.ErrShortUrlNotFound {
+			c.JSON(http.StatusNotFound, gin.H{
+				"statusCode": http.StatusNotFound,
+				"error":      repository.ErrShortUrlNotFound.Error(),
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"statusCode": http.StatusInternalServerError,
+			"error":      "Internal Server Error",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"statusCode": http.StatusOK,
+		"message":    "Short url deleted successfully",
+	})
 }

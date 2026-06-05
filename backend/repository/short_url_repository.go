@@ -96,3 +96,45 @@ func (r *ShortUrlRepository) UpdateAccessCount(ctx context.Context, id primitive
 
 	return &shortUrl, nil
 }
+
+func (r *ShortUrlRepository) Update(ctx context.Context, shortCode string, update bson.M) (*models.ShortUrl, error) {
+	// Always update the updated_at timestamp
+	update["updated_at"] = time.Now()
+	update["access_count"] = 0
+
+	// Create filter to match the short_code field
+	filter := bson.M{"short_code": shortCode}
+
+	updateDoc := bson.M{"$set": update}
+
+	// Use FindOneAndUpdate to get the updated document in one operation
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+
+	var shortUrl models.ShortUrl
+	err := r.collection.FindOneAndUpdate(ctx, filter, updateDoc, opts).Decode(&shortUrl)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, ErrShortUrlNotFound
+		}
+		return nil, err
+	}
+
+	return &shortUrl, nil
+}
+
+func (r *ShortUrlRepository) Delete(ctx context.Context, shortCode string) error {
+	// Create filter to match the short_code field
+	filter := bson.M{"short_code": shortCode}
+
+	result, err := r.collection.DeleteOne(ctx, filter)
+	if err != nil {
+		return err
+	}
+
+	// Check if any document was deleted
+	if result.DeletedCount == 0 {
+		return ErrShortUrlNotFound
+	}
+
+	return nil
+}

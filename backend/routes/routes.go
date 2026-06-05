@@ -24,6 +24,8 @@ func SetupRoutes(router *gin.Engine, shortUrlHandler *handlers.ShortUrlHandler) 
 			// Short URL endpoints
 			shortens.POST("", shortUrlHandler.CreateShortUrl)
 			shortens.GET("/:shortCode", shortUrlHandler.RedirectShortUrl)
+			shortens.PUT("/:shortCode", shortUrlHandler.UpdateShortUrl)
+			shortens.DELETE("/:shortCode", shortUrlHandler.DeleteShortUrl)
 		}
 	}
 }

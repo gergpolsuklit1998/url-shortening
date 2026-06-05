@@ -37,6 +37,6 @@ type CreateShortUrlRequest struct {
 // UpdateShortUrlRequest contains fields that can be updated.
 // All fields are optional to support partial updates.
 type UpdateShortUrlRequest struct {
-	Url       *string `json:"url" binding:"omitempty"`
-	ShortCode *string `json:"short_code" binding:"omitempty"`
+	Url         *string `json:"url" binding:"omitempty"`
+	AccessCount *int    `json:"access_count" binding:"omitempty"`
 }
