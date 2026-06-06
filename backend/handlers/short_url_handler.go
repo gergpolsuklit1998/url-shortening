@@ -114,6 +114,32 @@ func (h *ShortUrlHandler) RedirectShortUrl(c *gin.Context) {
 	c.Redirect(http.StatusMovedPermanently, shorUrl.Url)
 }
 
+func (h *ShortUrlHandler) GetShortUrlStats(c *gin.Context) {
+	shortCodeParam := c.Param("shortCode")
+
+	shortUrl, err := h.repo.FindByShortCode(c.Request.Context(), shortCodeParam)
+	if err != nil {
+		if err == repository.ErrShortUrlNotFound {
+			c.JSON(http.StatusNotFound, gin.H{
+				"statusCode": http.StatusNotFound,
+				"error":      repository.ErrShortUrlNotFound.Error(),
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"statusCode": http.StatusInternalServerError,
+			"error":      "Internal Server Error",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"statusCode": http.StatusOK,
+		"message":    "Short url stats retrieved successfully",
+		"data":       shortUrl,
+	})
+}
+
 func (h *ShortUrlHandler) UpdateShortUrl(c *gin.Context) {
 	// Parse the ShortCode parameter from the URL
 	shortCodeParam := c.Param("shortCode")
@@ -163,8 +189,9 @@ func (h *ShortUrlHandler) UpdateShortUrl(c *gin.Context) {
 	updatedShortUrl.ShortCode = "http://localhost:8000/api/v1/shortens/" + updatedShortUrl.ShortCode
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Short url updated successfully",
-		"data":    updatedShortUrl,
+		"statusCode": http.StatusOK,
+		"message":    "Short url updated successfully",
+		"data":       updatedShortUrl,
 	})
 }
 
