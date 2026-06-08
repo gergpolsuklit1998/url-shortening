@@ -14,19 +14,16 @@ import (
 	"github.com/gergpolsuklit1998/url-shortening/services"
 
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 )
 
 func main() {
-	// Load configuration from environment variables
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
 	mongoURI := getEnv("MONGODB_URI", "mongodb://localhost:27017")
-	dbName := getEnv("DB_NAME", "gin_mongodb_api")
+	dbName := getEnv("DB_NAME", "url-shortening")
 	port := getEnv("PORT", "8080")
+	// Set Gin to release mode in production
+	if getEnv("GIN_MODE", "debug") == "release" {
+		gin.SetMode(gin.ReleaseMode)
+	}
 
 	// Connect to MongoDB
 	db, err := config.ConnectDB(mongoURI, dbName)
